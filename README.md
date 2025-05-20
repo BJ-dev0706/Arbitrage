@@ -111,6 +111,11 @@ To add support for a new exchange:
 2. Add the exchange configuration to the `SUPPORTED_EXCHANGES` object in `src/exchanges/index.js`
 3. Test thoroughly in simulation mode before enabling real trading
 
+
+![Cover Image](/assets/1.png)
+![Cover Image](/assets/2.png)
+![Cover Image](/assets/3.png)
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
