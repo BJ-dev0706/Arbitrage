@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crypto Arbitrage Bot Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div
+        class="dashboard-header d-flex justify-content-between align-items-center"
+      >
+        <h1 class="dashboard-title">
+          <i class="bi bi-graph-up-arrow"></i> Crypto Arbitrage Dashboard
+        </h1>
+        <button id="refresh-btn" class="btn btn-primary refresh-btn">
+          <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-header">
+              <i class="bi bi-bar-chart-fill"></i> Performance Stats
+            </div>
+            <div class="card-body" id="stats-container">
+              <div class="empty-state">
+                <i class="bi bi-hourglass-split"></i>
+                <p>Loading statistics...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header">
+              <i class="bi bi-wallet2"></i> Exchange Balances
+            </div>
+            <div class="card-body" id="balances-container">
+              <div class="empty-state">
+                <i class="bi bi-hourglass-split"></i>
+                <p>Loading balances...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <i class="bi bi-lightning-charge-fill"></i> Recent Arbitrage
+              Opportunities
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Symbol</th>
+                      <th>Exchange Pair</th>
+                      <th>Prices</th>
+                      <th>Diff %</th>
+                      <th>Potential Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody id="opportunities-container">
+                    <tr>
+                      <td colspan="6">
+                        <div class="empty-state">
+                          <i class="bi bi-hourglass-split"></i>
+                          <p>Loading opportunities...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <i class="bi bi-arrow-left-right"></i> Recent Executed Trades
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Symbol</th>
+                      <th>Exchange Pair</th>
+                      <th>Prices</th>
+                      <th>Amount</th>
+                      <th>Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trades-container">
+                    <tr>
+                      <td colspan="6">
+                        <div class="empty-state">
+                          <i class="bi bi-hourglass-split"></i>
+                          <p>Loading trades...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="refresh-time text-end" id="refresh-time">
+        Last updated: <span id="last-update-time">Just now</span>
+      </div>
+    </div>
+    <script src="index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
