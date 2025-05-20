@@ -1,7 +1,6 @@
 const ccxt = require('ccxt');
 const logger = require('../utils/logger');
 
-// Map of supported exchanges and their configuration
 const SUPPORTED_EXCHANGES = {
   binance: {
     apiKey: process.env.BINANCE_API_KEY,
@@ -18,7 +17,6 @@ const SUPPORTED_EXCHANGES = {
   }
 };
 
-// Common trading pairs to monitor
 const TRADING_PAIRS = [
   'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 
   'ADA/USDT', 'SOL/USDT', 'XRP/USDT',
@@ -34,21 +32,17 @@ async function initializeExchanges() {
   
   for (const [exchangeId, config] of Object.entries(SUPPORTED_EXCHANGES)) {
     try {
-      // Skip exchanges with missing API keys
       if (!config.apiKey || config.apiKey === 'your_' + exchangeId + '_api_key') {
         logger.warn(`Skipping ${exchangeId} - API keys not configured`);
         continue;
       }
       
-      // Create exchange instance
       const ExchangeClass = ccxt[exchangeId];
       const exchange = new ExchangeClass(config);
       
-      // Load markets for the exchange
       await exchange.loadMarkets();
       logger.info(`Connected to ${exchangeId} - ${Object.keys(exchange.markets).length} markets available`);
       
-      // Add to exchanges map
       exchanges[exchangeId] = exchange;
     } catch (error) {
       logger.error(`Failed to initialize ${exchangeId}: ${error.message}`);

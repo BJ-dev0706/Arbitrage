@@ -2,17 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
 
-// Database file paths
 const DATA_DIR = path.join(__dirname, '../../data');
 const OPPORTUNITIES_FILE = path.join(DATA_DIR, 'opportunities.json');
 const TRADES_FILE = path.join(DATA_DIR, 'trades.json');
 
-// Make sure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Initialize data files if they don't exist
 for (const file of [OPPORTUNITIES_FILE, TRADES_FILE]) {
   if (!fs.existsSync(file)) {
     fs.writeFileSync(file, JSON.stringify([], null, 2));
@@ -59,7 +56,6 @@ function recordArbitrageOpportunity(opportunity) {
   const opportunities = readData(OPPORTUNITIES_FILE);
   opportunities.push(opportunity);
   
-  // Keep only the last 1000 opportunities
   const trimmedOpportunities = opportunities.slice(-1000);
   
   return writeData(OPPORTUNITIES_FILE, trimmedOpportunities);
@@ -104,14 +100,11 @@ function getArbitrageStats() {
   const opportunities = readData(OPPORTUNITIES_FILE);
   const trades = readData(TRADES_FILE);
   
-  // Calculate total profit
   const totalProfit = trades.reduce((sum, trade) => sum + trade.potentialProfit, 0);
   
-  // Calculate average percentage difference
   const totalPercentageDiff = opportunities.reduce((sum, opp) => sum + opp.percentageDifference, 0);
   const avgPercentageDiff = opportunities.length > 0 ? totalPercentageDiff / opportunities.length : 0;
   
-  // Calculate exchange statistics
   const exchangePairs = new Map();
   opportunities.forEach(opp => {
     const key = `${opp.buyExchange}-${opp.sellExchange}`;
@@ -122,7 +115,6 @@ function getArbitrageStats() {
     const pairStats = exchangePairs.get(key);
     pairStats.count++;
     
-    // Add profit if this opportunity was executed
     const relatedTrade = trades.find(t => 
       t.buyExchange === opp.buyExchange && 
       t.sellExchange === opp.sellExchange && 
@@ -134,7 +126,6 @@ function getArbitrageStats() {
     }
   });
   
-  // Format exchange pair stats
   const exchangePairStats = Array.from(exchangePairs.entries()).map(([pair, stats]) => ({
     pair,
     count: stats.count,

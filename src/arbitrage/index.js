@@ -2,11 +2,9 @@ const logger = require('../utils/logger');
 const { TRADING_PAIRS, fetchOrderBook, executeBuy, executeSell } = require('../exchanges');
 const { recordArbitrageOpportunity, recordTrade } = require('../database');
 
-// Configuration from environment
 const ARBITRAGE_THRESHOLD = parseFloat(process.env.ARBITRAGE_THRESHOLD || '0.5');
 const TRADE_AMOUNT = parseFloat(process.env.TRADE_AMOUNT || '100');
 
-// Track active arbitrage operations
 const activeArbitrageOps = new Map();
 
 /**
@@ -16,10 +14,8 @@ const activeArbitrageOps = new Map();
 function startArbitrageScanner(exchanges) {
   logger.info(`Starting arbitrage scanner with ${ARBITRAGE_THRESHOLD}% threshold`);
   
-  // Run scanner every 10 seconds
   setInterval(() => scanForArbitrageOpportunities(exchanges), 10000);
   
-  // Initial scan
   scanForArbitrageOpportunities(exchanges);
 }
 
@@ -48,12 +44,10 @@ async function scanPairAcrossExchanges(exchanges, symbol) {
   const priceData = [];
   const exchangeIds = Object.keys(exchanges);
   
-  // Collect price data from all exchanges
   for (const exchangeId of exchangeIds) {
     const exchange = exchanges[exchangeId];
     
     try {
-      // Skip if we don't have the symbol on this exchange
       if (!exchange.markets || !exchange.markets[symbol]) {
         continue;
       }
@@ -63,7 +57,6 @@ async function scanPairAcrossExchanges(exchanges, symbol) {
         continue;
       }
       
-      // Get best bid (highest buying price) and best ask (lowest selling price)
       const bestBid = orderBook.bids[0][0];
       const bestAsk = orderBook.asks[0][0];
       
@@ -79,28 +72,23 @@ async function scanPairAcrossExchanges(exchanges, symbol) {
     }
   }
   
-  // Need at least 2 exchanges with data to compare
   if (priceData.length < 2) {
     return;
   }
   
-  // Find best buying and selling prices across exchanges
-  priceData.sort((a, b) => b.bestBid - a.bestBid); // Highest bid (buy price) first
+  priceData.sort((a, b) => b.bestBid - a.bestBid);
   const highestBid = priceData[0];
   
-  priceData.sort((a, b) => a.bestAsk - b.bestAsk); // Lowest ask (sell price) first
+  priceData.sort((a, b) => a.bestAsk - b.bestAsk);
   const lowestAsk = priceData[0];
   
-  // Skip if best prices are from the same exchange (can't arbitrage on the same exchange)
   if (highestBid.exchange === lowestAsk.exchange) {
     return;
   }
   
-  // Calculate price difference and percentage
   const priceDiff = highestBid.bestBid - lowestAsk.bestAsk;
   const percentageDiff = (priceDiff / lowestAsk.bestAsk) * 100;
   
-  // Check if the difference meets our threshold for arbitrage
   if (percentageDiff > ARBITRAGE_THRESHOLD) {
     const opportunity = {
       symbol,
@@ -116,16 +104,13 @@ async function scanPairAcrossExchanges(exchanges, symbol) {
     
     logger.info(`ARBITRAGE OPPORTUNITY: ${symbol} - Buy on ${lowestAsk.exchange} at ${lowestAsk.bestAsk}, Sell on ${highestBid.exchange} at ${highestBid.bestBid} - ${percentageDiff.toFixed(2)}% difference`);
     
-    // Record the opportunity
     recordArbitrageOpportunity(opportunity);
     
-    // Execute the arbitrage if not already active for this pair
     const key = `${symbol}-${lowestAsk.exchange}-${highestBid.exchange}`;
     if (!activeArbitrageOps.has(key)) {
       executeArbitrage(lowestAsk.exchangeObj, highestBid.exchangeObj, symbol, TRADE_AMOUNT, opportunity);
       activeArbitrageOps.set(key, Date.now());
       
-      // Remove from active operations after 1 minute
       setTimeout(() => {
         activeArbitrageOps.delete(key);
       }, 60000);
@@ -143,10 +128,8 @@ async function scanPairAcrossExchanges(exchanges, symbol) {
  */
 async function executeArbitrage(buyExchange, sellExchange, symbol, amount, opportunity) {
   try {
-    // Calculate the amount of base currency to buy
     const baseAmount = amount / opportunity.buyPrice;
     
-    // Execute buy order
     logger.info(`Executing buy order for ${baseAmount} ${symbol} on ${buyExchange.id} at ${opportunity.buyPrice}`);
     const buyOrder = await executeBuy(buyExchange, symbol, baseAmount);
     
@@ -155,7 +138,6 @@ async function executeArbitrage(buyExchange, sellExchange, symbol, amount, oppor
       return;
     }
     
-    // Execute sell order
     logger.info(`Executing sell order for ${baseAmount} ${symbol} on ${sellExchange.id} at ${opportunity.sellPrice}`);
     const sellOrder = await executeSell(sellExchange, symbol, baseAmount);
     
@@ -164,7 +146,6 @@ async function executeArbitrage(buyExchange, sellExchange, symbol, amount, oppor
       return;
     }
     
-    // Record completed arbitrage trade
     const trade = {
       ...opportunity,
       buyOrderId: buyOrder.id || 'simulated',

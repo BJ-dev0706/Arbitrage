@@ -16,39 +16,30 @@ function startServer(exchanges) {
   const app = express();
   const PORT = process.env.PORT || 3000;
   
-  // Serve static files
   app.use(express.static(path.join(__dirname, 'public')));
   
-  // API routes
-  
-  // Get all exchange names
   app.get('/api/exchanges', (req, res) => {
     res.json(Object.keys(exchanges));
   });
   
-  // Get trading pairs
   app.get('/api/pairs', (req, res) => {
     res.json(TRADING_PAIRS);
   });
   
-  // Get recent arbitrage opportunities
   app.get('/api/opportunities', (req, res) => {
     const limit = parseInt(req.query.limit) || 100;
     res.json(getRecentOpportunities(limit));
   });
   
-  // Get recent trades
   app.get('/api/trades', (req, res) => {
     const limit = parseInt(req.query.limit) || 100;
     res.json(getRecentTrades(limit));
   });
   
-  // Get arbitrage statistics
   app.get('/api/stats', (req, res) => {
     res.json(getArbitrageStats());
   });
   
-  // Get exchange balances
   app.get('/api/balances', async (req, res) => {
     const balances = {};
     
@@ -57,18 +48,15 @@ function startServer(exchanges) {
         const balance = await fetchBalance(exchange);
         
         if (balance) {
-          // Extract only the relevant currencies
           const relevantBalances = {};
           const relevantCurrencies = new Set();
           
-          // Extract unique currencies from trading pairs
           TRADING_PAIRS.forEach(pair => {
             const [base, quote] = pair.split('/');
             relevantCurrencies.add(base);
             relevantCurrencies.add(quote);
           });
           
-          // Filter and format balances
           for (const currency of relevantCurrencies) {
             if (balance.free && balance.free[currency]) {
               relevantBalances[currency] = {
@@ -89,18 +77,15 @@ function startServer(exchanges) {
     res.json(balances);
   });
   
-  // Dashboard HTML
   app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
   
-  // Create public directory if it doesn't exist
   const publicDir = path.join(__dirname, 'public');
   if (!require('fs').existsSync(publicDir)) {
     require('fs').mkdirSync(publicDir, { recursive: true });
   }
   
-  // Create a basic HTML dashboard
   const dashboardHtml = `
 <!DOCTYPE html>
 <html lang="en">
@@ -389,10 +374,8 @@ function startServer(exchanges) {
 </html>
   `;
   
-  // Write the dashboard HTML file
   require('fs').writeFileSync(path.join(publicDir, 'index.html'), dashboardHtml);
   
-  // Start the server
   app.listen(PORT, () => {
     logger.info(`Monitoring server started on http://localhost:${PORT}`);
   });

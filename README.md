@@ -41,8 +41,8 @@ More exchanges can be added easily by extending the configuration.
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/crypto-arbitrage-bot.git
-   cd crypto-arbitrage-bot
+   git clone https://github.com/BJ-dev0706/Arbitrage.git
+   cd Arbitrage
    ```
 
 2. Install dependencies:
