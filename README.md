@@ -36,6 +36,7 @@ More exchanges can be added easily by extending the configuration.
 
 - Node.js 14.x or higher
 - API keys for the exchanges you want to trade on
+- MongoDB (v4.4 or higher)
 
 ### Installation
 
@@ -74,7 +75,29 @@ ARBITRAGE_THRESHOLD=0.5  # Minimum percentage difference to execute trades
 TRADE_AMOUNT=100         # Amount in USDT to use for each trade
 ENABLE_TRADING=false     # Set to true to enable real trading
 LOG_LEVEL=info           # Logging level (info, warn, error, debug)
+
+# MongoDB Configuration
+MONGO_URI=mongodb://localhost:27017/arbitrage
 ```
+
+### Database Setup
+
+The application uses MongoDB to store arbitrage opportunities and trades.
+
+1. Install and start MongoDB on your system:
+   - [MongoDB Installation Guide](https://docs.mongodb.com/manual/installation/)
+
+2. The application will automatically connect to MongoDB using the connection string in your `.env` file.
+
+3. To migrate existing data from the file-based storage to MongoDB, run:
+   ```
+   node src/scripts/migrate-to-mongodb.js
+   ```
+
+4. To clear existing MongoDB data before migration, add the `--clear` flag:
+   ```
+   node src/scripts/migrate-to-mongodb.js --clear
+   ```
 
 ### Usage
 

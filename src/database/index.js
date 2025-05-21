@@ -1,144 +1,133 @@
-const fs = require('fs');
-const path = require('path');
 const logger = require('../utils/logger');
+const { connectToDatabase } = require('./mongodb');
+const { Opportunity, Trade } = require('./models');
 
-const DATA_DIR = path.join(__dirname, '../../data');
-const OPPORTUNITIES_FILE = path.join(DATA_DIR, 'opportunities.json');
-const TRADES_FILE = path.join(DATA_DIR, 'trades.json');
-
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-for (const file of [OPPORTUNITIES_FILE, TRADES_FILE]) {
-  if (!fs.existsSync(file)) {
-    fs.writeFileSync(file, JSON.stringify([], null, 2));
-  }
-}
+connectToDatabase();
 
 /**
- * Read data from a JSON file
- * @param {String} filePath - Path to the JSON file
- * @returns {Array} Data from the file
+ * Record an arbitrage opportunity
+ * @param {Object} opportunity - Arbitrage opportunity details
+ * @returns {Promise<Boolean>} Success status
  */
-function readData(filePath) {
+async function recordArbitrageOpportunity(opportunity) {
   try {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    logger.error(`Error reading data from ${filePath}: ${error.message}`);
-    return [];
-  }
-}
-
-/**
- * Write data to a JSON file
- * @param {String} filePath - Path to the JSON file
- * @param {Array} data - Data to write
- * @returns {Boolean} Success status
- */
-function writeData(filePath, data) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    await Opportunity.create(opportunity);
     return true;
   } catch (error) {
-    logger.error(`Error writing data to ${filePath}: ${error.message}`);
+    logger.error(`Error recording arbitrage opportunity: ${error.message}`);
     return false;
   }
 }
 
 /**
- * Record an arbitrage opportunity
- * @param {Object} opportunity - Arbitrage opportunity details
- * @returns {Boolean} Success status
- */
-function recordArbitrageOpportunity(opportunity) {
-  const opportunities = readData(OPPORTUNITIES_FILE);
-  opportunities.push(opportunity);
-  
-  const trimmedOpportunities = opportunities.slice(-1000);
-  
-  return writeData(OPPORTUNITIES_FILE, trimmedOpportunities);
-}
-
-/**
  * Record a completed arbitrage trade
  * @param {Object} trade - Trade details
- * @returns {Boolean} Success status
+ * @returns {Promise<Boolean>} Success status
  */
-function recordTrade(trade) {
-  const trades = readData(TRADES_FILE);
-  trades.push(trade);
-  return writeData(TRADES_FILE, trades);
+async function recordTrade(trade) {
+  try {
+    await Trade.create(trade);
+    return true;
+  } catch (error) {
+    logger.error(`Error recording trade: ${error.message}`);
+    return false;
+  }
 }
 
 /**
  * Get recent arbitrage opportunities
  * @param {Number} limit - Maximum number of opportunities to return
- * @returns {Array} Recent opportunities
+ * @returns {Promise<Array>} Recent opportunities
  */
-function getRecentOpportunities(limit = 100) {
-  const opportunities = readData(OPPORTUNITIES_FILE);
-  return opportunities.slice(-limit).reverse();
+async function getRecentOpportunities(limit = 100) {
+  try {
+    return await Opportunity.find({})
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .lean();
+  } catch (error) {
+    logger.error(`Error getting recent opportunities: ${error.message}`);
+    return [];
+  }
 }
 
 /**
  * Get recent trades
  * @param {Number} limit - Maximum number of trades to return
- * @returns {Array} Recent trades
+ * @returns {Promise<Array>} Recent trades
  */
-function getRecentTrades(limit = 100) {
-  const trades = readData(TRADES_FILE);
-  return trades.slice(-limit).reverse();
+async function getRecentTrades(limit = 100) {
+  try {
+    return await Trade.find({})
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .lean();
+  } catch (error) {
+    logger.error(`Error getting recent trades: ${error.message}`);
+    return [];
+  }
 }
 
 /**
  * Get arbitrage statistics
- * @returns {Object} Statistics
+ * @returns {Promise<Object>} Statistics
  */
-function getArbitrageStats() {
-  const opportunities = readData(OPPORTUNITIES_FILE);
-  const trades = readData(TRADES_FILE);
-  
-  const totalProfit = trades.reduce((sum, trade) => sum + trade.potentialProfit, 0);
-  
-  const totalPercentageDiff = opportunities.reduce((sum, opp) => sum + opp.percentageDifference, 0);
-  const avgPercentageDiff = opportunities.length > 0 ? totalPercentageDiff / opportunities.length : 0;
-  
-  const exchangePairs = new Map();
-  opportunities.forEach(opp => {
-    const key = `${opp.buyExchange}-${opp.sellExchange}`;
-    if (!exchangePairs.has(key)) {
-      exchangePairs.set(key, { count: 0, totalProfit: 0 });
-    }
+async function getArbitrageStats() {
+  try {
+    const totalOpportunities = await Opportunity.countDocuments();
+    const totalTrades = await Trade.countDocuments();
     
-    const pairStats = exchangePairs.get(key);
-    pairStats.count++;
+    const trades = await Trade.find({});
+    const totalProfit = trades.reduce((sum, trade) => sum + trade.potentialProfit, 0);
     
-    const relatedTrade = trades.find(t => 
-      t.buyExchange === opp.buyExchange && 
-      t.sellExchange === opp.sellExchange && 
-      t.timestamp === opp.timestamp
-    );
+    const opportunities = await Opportunity.find({});
+    const totalPercentageDiff = opportunities.reduce((sum, opp) => sum + opp.percentageDifference, 0);
+    const avgPercentageDiff = opportunities.length > 0 ? totalPercentageDiff / opportunities.length : 0;
     
-    if (relatedTrade) {
-      pairStats.totalProfit += relatedTrade.potentialProfit;
-    }
-  });
-  
-  const exchangePairStats = Array.from(exchangePairs.entries()).map(([pair, stats]) => ({
-    pair,
-    count: stats.count,
-    totalProfit: stats.totalProfit
-  }));
-  
-  return {
-    totalOpportunities: opportunities.length,
-    totalTrades: trades.length,
-    totalProfit,
-    avgPercentageDiff,
-    exchangePairStats
-  };
+    const exchangePairs = new Map();
+    opportunities.forEach(opp => {
+      const key = `${opp.buyExchange}-${opp.sellExchange}`;
+      if (!exchangePairs.has(key)) {
+        exchangePairs.set(key, { count: 0, totalProfit: 0 });
+      }
+      
+      const pairStats = exchangePairs.get(key);
+      pairStats.count++;
+      
+      const relatedTrade = trades.find(t => 
+        t.buyExchange === opp.buyExchange && 
+        t.sellExchange === opp.sellExchange && 
+        t.timestamp.getTime() === opp.timestamp.getTime()
+      );
+      
+      if (relatedTrade) {
+        pairStats.totalProfit += relatedTrade.potentialProfit;
+      }
+    });
+    
+    const exchangePairStats = Array.from(exchangePairs.entries()).map(([pair, stats]) => ({
+      pair,
+      count: stats.count,
+      totalProfit: stats.totalProfit
+    }));
+    
+    return {
+      totalOpportunities,
+      totalTrades,
+      totalProfit,
+      avgPercentageDiff,
+      exchangePairStats
+    };
+  } catch (error) {
+    logger.error(`Error getting arbitrage stats: ${error.message}`);
+    return {
+      totalOpportunities: 0,
+      totalTrades: 0,
+      totalProfit: 0,
+      avgPercentageDiff: 0,
+      exchangePairStats: []
+    };
+  }
 }
 
 module.exports = {
